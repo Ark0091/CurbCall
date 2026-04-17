@@ -1,13 +1,17 @@
 const { randomUUID } = require('crypto')
+const bcrypt = require('bcryptjs')
 
 const now = new Date().toISOString()
+const PASSWORD_SALT_ROUNDS = 10
+const hashPassword = (password) => bcrypt.hashSync(password, PASSWORD_SALT_ROUNDS)
+const verifyPassword = (password, passwordHash) => bcrypt.compareSync(password, passwordHash)
 
 const users = [
   {
     id: 'admin-1',
     name: 'Paris Admin',
     email: 'admin@curbcall.paris',
-    password: 'admin123',
+    passwordHash: hashPassword('admin123'),
     professionalType: 'city_admin',
     licensePlate: null,
     role: 'admin',
@@ -61,7 +65,7 @@ const createUser = ({ name, email, password, professionalType, licensePlate, rol
     id: randomUUID(),
     name,
     email,
-    password,
+    passwordHash: hashPassword(password),
     professionalType,
     licensePlate: licensePlate || null,
     role,
@@ -118,6 +122,8 @@ module.exports = {
   users,
   zones,
   sessions,
+  hashPassword,
+  verifyPassword,
   getZonesWithLiveStatus,
   createUser,
   createZone,

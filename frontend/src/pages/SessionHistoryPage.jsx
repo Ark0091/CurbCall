@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, getStoredAuth } from '../api'
 
+const ESTIMATED_SAVINGS_PER_SESSION_EUR = 35
+
 export default function SessionHistoryPage() {
   const [sessions, setSessions] = useState([])
 
@@ -16,7 +18,9 @@ export default function SessionHistoryPage() {
   }, [])
 
   const savings = useMemo(
-    () => sessions.filter((session) => session.status === 'completed').length * 35,
+    () =>
+      sessions.filter((session) => session.status === 'completed').length *
+      ESTIMATED_SAVINGS_PER_SESSION_EUR,
     [sessions],
   )
 

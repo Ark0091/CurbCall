@@ -2,16 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, setStoredAuth } from '../api'
 
-const fallbackDemoUser = {
-  token: 'demo-token',
-  user: {
-    id: 'demo-user',
-    name: 'Demo Driver',
-    professionalType: 'delivery',
-    role: 'driver',
-  },
-}
-
 export default function DriverAuthPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
@@ -43,9 +33,8 @@ export default function DriverAuthPage() {
 
       setStoredAuth(auth)
       navigate('/driver/map')
-    } catch {
-      setStoredAuth(fallbackDemoUser)
-      navigate('/driver/map')
+    } catch (requestError) {
+      setError(requestError.message)
     }
   }
 

@@ -7,6 +7,7 @@ const {
   zones,
   sessions,
   getZonesWithLiveStatus,
+  verifyPassword,
   createUser,
   createZone,
   createSession,
@@ -18,9 +19,31 @@ app.use(cors())
 app.use(express.json())
 
 const allowedDurations = new Set([5, 10, 15, 30])
-const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false })
-const sessionRateLimit = rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false })
-const adminRateLimit = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false })
+const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
+const AUTH_RATE_LIMIT_MAX = 30
+const SESSION_RATE_LIMIT_WINDOW_MS = 60 * 1000
+const SESSION_RATE_LIMIT_MAX = 60
+const ADMIN_RATE_LIMIT_WINDOW_MS = 60 * 1000
+const ADMIN_RATE_LIMIT_MAX = 120
+
+const authRateLimit = rateLimit({
+  windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+  limit: AUTH_RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+const sessionRateLimit = rateLimit({
+  windowMs: SESSION_RATE_LIMIT_WINDOW_MS,
+  limit: SESSION_RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+const adminRateLimit = rateLimit({
+  windowMs: ADMIN_RATE_LIMIT_WINDOW_MS,
+  limit: ADMIN_RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 const toPublicUser = (user) => ({
   id: user.id,
@@ -63,7 +86,7 @@ app.post('/auth/login', authRateLimit, (req, res) => {
   }
 
   const user = users.find((candidate) => candidate.email.toLowerCase() === email.toLowerCase())
-  if (!user || user.password !== password) {
+  if (!user || !verifyPassword(password, user.passwordHash)) {
     return res.status(401).json({ error: 'Invalid credentials' })
   }
 

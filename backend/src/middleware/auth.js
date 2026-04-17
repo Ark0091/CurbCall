@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken')
 
 const JWT_SECRET = process.env.JWT_SECRET || 'curbcall-dev-secret'
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required in production')
+}
 
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization
