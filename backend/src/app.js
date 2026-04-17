@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
+const { rateLimit } = require('express-rate-limit')
 const {
   users,
   zones,
@@ -17,6 +18,9 @@ app.use(cors())
 app.use(express.json())
 
 const allowedDurations = new Set([5, 10, 15, 30])
+const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false })
+const sessionRateLimit = rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false })
+const adminRateLimit = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false })
 
 const toPublicUser = (user) => ({
   id: user.id,
@@ -31,7 +35,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'curbcall-api' })
 })
 
-app.post('/auth/register', (req, res) => {
+app.post('/auth/register', authRateLimit, (req, res) => {
   const { name, email, password, professionalType, licensePlate } = req.body
 
   if (!name || !email || !password || !professionalType) {
@@ -51,7 +55,7 @@ app.post('/auth/register', (req, res) => {
   return res.status(201).json({ token, user: toPublicUser(user) })
 })
 
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', authRateLimit, (req, res) => {
   const { email, password } = req.body
 
   if (!email || !password) {
@@ -71,7 +75,7 @@ app.get('/zones', (_req, res) => {
   return res.json(getZonesWithLiveStatus().filter((zone) => zone.isActive))
 })
 
-app.post('/sessions/start', authenticate, (req, res) => {
+app.post('/sessions/start', sessionRateLimit, authenticate, (req, res) => {
   const { zoneId, durationMinutes } = req.body
 
   if (!zoneId || !allowedDurations.has(durationMinutes)) {
@@ -105,7 +109,7 @@ app.post('/sessions/start', authenticate, (req, res) => {
   })
 })
 
-app.post('/sessions/end', authenticate, (req, res) => {
+app.post('/sessions/end', sessionRateLimit, authenticate, (req, res) => {
   const { sessionId } = req.body
 
   const session = sessions.find((candidate) => {
@@ -128,7 +132,7 @@ app.post('/sessions/end', authenticate, (req, res) => {
   return res.json(session)
 })
 
-app.get('/sessions/:userId', authenticate, (req, res) => {
+app.get('/sessions/:userId', sessionRateLimit, authenticate, (req, res) => {
   if (req.user.role !== 'admin' && req.user.userId !== req.params.userId) {
     return res.status(403).json({ error: 'Access denied' })
   }
@@ -137,11 +141,11 @@ app.get('/sessions/:userId', authenticate, (req, res) => {
   return res.json(userSessions)
 })
 
-app.get('/admin/zones', authenticate, authorizeAdmin, (_req, res) => {
+app.get('/admin/zones', adminRateLimit, authenticate, authorizeAdmin, (_req, res) => {
   return res.json(getZonesWithLiveStatus())
 })
 
-app.post('/admin/zones', authenticate, authorizeAdmin, (req, res) => {
+app.post('/admin/zones', adminRateLimit, authenticate, authorizeAdmin, (req, res) => {
   const { name, district, lat, lng, maxDurationMinutes, allowedTypes, activeHours, isActive } = req.body
 
   if (!name || !district || lat === undefined || lng === undefined) {
@@ -162,7 +166,7 @@ app.post('/admin/zones', authenticate, authorizeAdmin, (req, res) => {
   return res.status(201).json(zone)
 })
 
-app.get('/admin/analytics', authenticate, authorizeAdmin, (_req, res) => {
+app.get('/admin/analytics', adminRateLimit, authenticate, authorizeAdmin, (_req, res) => {
   const completed = sessions.filter((session) => session.status === 'completed').length
   const flagged = sessions.filter((session) => session.status === 'flagged').length
   const total = sessions.length
