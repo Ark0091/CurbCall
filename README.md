@@ -37,5 +37,16 @@ npm install
 npm run dev
 ```
 
-The frontend calls the API at `http://localhost:4000` by default.
+The frontend calls `/api` by default.
+In local Vite development, `/api` is proxied to `http://localhost:4000`.
 Set `VITE_API_BASE_URL` to override.
+
+### Netlify (all-in-one deployment)
+
+```bash
+npx netlify dev
+```
+
+- React app is built from `frontend/` and published from `frontend/dist`
+- Express API is served as Netlify Function from `backend/functions/api.js`
+- `/api/*` rewrites to `/.netlify/functions/api/:splat`
