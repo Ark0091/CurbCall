@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>CurbCall - Pro</title>
+    <title>CurbCall - Professional</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
@@ -14,19 +14,20 @@
 
     <style>
         :root {
-            --primary: #0047AB;
-            --primary-dark: #003380;
-            --success: #4caf50;
-            --danger: #f44336;
-            --bg: #f4f7f6;
-            --text: #333;
+            --primary: #0A84FF; /* iOS Blue */
+            --primary-dark: #006ee6;
+            --success: #34C759; /* iOS Green */
+            --danger: #FF3B30; /* iOS Red */
+            --bg: #F2F2F7; /* iOS Light Gray */
+            --surface: #FFFFFF;
+            --text: #1C1C1E;
+            --text-muted: #8E8E93;
         }
         
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; padding: 0; background-color: #ccc; 
+            margin: 0; padding: 0; background-color: #e5e5ea; 
             display: flex; justify-content: center; align-items: center; min-height: 100vh;
         }
 
@@ -39,129 +40,277 @@
         @media (min-width: 500px) {
             #app-container {
                 width: 400px; height: 850px; 
-                border-radius: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-                border: 8px solid #222;
+                border-radius: 45px; box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+                border: 12px solid #000;
             }
         }
 
         .status-bar {
-            height: 50px; background: var(--primary); color: white;
+            height: 54px; background: transparent; color: #000;
             display: flex; justify-content: space-between; align-items: flex-end;
-            padding: 0 20px 10px; font-size: 14px; font-weight: 600; z-index: 2000;
+            padding: 0 25px 12px; font-size: 15px; font-weight: 600; z-index: 2000;
+            position: absolute; top: 0; width: 100%; pointer-events: none;
         }
         .dynamic-island {
-            width: 100px; height: 25px; background: #000; border-radius: 15px;
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 30px; background: #000; border-radius: 20px;
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+            pointer-events: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        .screen { flex: 1; display: none; flex-direction: column; height: 100%; overflow-y: auto; padding-bottom: 70px; }
+        .screen { flex: 1; display: none; flex-direction: column; height: 100%; overflow-y: auto; padding-bottom: 90px; padding-top: 60px; }
         .screen.active { display: flex; }
+        #screen-map { padding-top: 0; } /* Map takes full screen behind island */
 
-        #map-wrapper { flex: 1; position: relative; }
+        #map-wrapper { flex: 1; position: relative; height: 100%; }
         #map { width: 100%; height: 100%; }
         
+        /* Modern Bottom Panel */
         .bottom-panel {
-            background: white; border-top-left-radius: 20px; border-top-right-radius: 20px;
-            padding: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            border-top-left-radius: 30px; border-top-right-radius: 30px;
+            padding: 25px 25px 40px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
             position: absolute; bottom: 0; width: 100%; z-index: 1000;
-            transform: translateY(100%); transition: transform 0.3s ease-out;
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .bottom-panel.open { transform: translateY(0); }
-        .panel-handle { width: 40px; height: 5px; background: #ddd; border-radius: 3px; margin: 0 auto 15px; }
+        .panel-handle { width: 50px; height: 5px; background: #E5E5EA; border-radius: 5px; margin: 0 auto 20px; }
 
-        h2 { margin: 0 0 10px; font-size: 1.2rem; color: var(--text); }
-        p { color: #666; font-size: 0.95rem; line-height: 1.4; margin: 0 0 15px; }
+        h1 { font-size: 28px; font-weight: 800; margin: 10px 20px 20px; color: var(--text); }
+        h2 { margin: 0 0 8px; font-size: 20px; color: var(--text); font-weight: 700; }
+        h3 { margin: 0 0 5px; font-size: 16px; color: var(--text); }
+        p { color: var(--text-muted); font-size: 15px; line-height: 1.4; margin: 0 0 15px; }
         
         .btn {
-            display: block; width: 100%; background: var(--primary); color: white;
-            border: none; padding: 14px; border-radius: 12px; font-size: 1.1rem; 
-            font-weight: 600; cursor: pointer; text-align: center; margin-bottom: 10px;
             display: flex; justify-content: center; align-items: center; gap: 10px;
+            width: 100%; background: var(--primary); color: white;
+            border: none; padding: 16px; border-radius: 16px; font-size: 17px; 
+            font-weight: 600; cursor: pointer; margin-bottom: 12px; transition: transform 0.1s;
         }
-        .btn:active { background: var(--primary-dark); }
+        .btn:active { transform: scale(0.98); background: var(--primary-dark); }
         .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn:disabled { background: #E5E5EA; color: #8E8E93; cursor: not-allowed; border: none; }
 
-        .content-pad { padding: 20px; }
-        .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .timer { font-size: 3rem; font-weight: bold; text-align: center; color: var(--primary); margin: 20px 0; }
+        .content-pad { padding: 0 20px; }
+        .card { background: var(--surface); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        .timer { font-size: 48px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; color: var(--primary); margin: 20px 0; }
         
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: var(--surface); padding: 20px 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .stat-box i { font-size: 24px; color: var(--primary); margin-bottom: 10px; }
+        .stat-box .value { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+        .stat-box .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* List Items (Settings) */
+        .list-group { background: var(--surface); border-radius: 20px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #F2F2F7; font-size: 16px; color: var(--text); cursor: pointer; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item i.fa-chevron-right { color: #C7C7CC; font-size: 14px; }
+        .list-item .icon-bg { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: white; margin-right: 12px; }
+
+        /* Modals */
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg);
+            z-index: 3000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column; padding-top: 60px;
+        }
+        .modal.open { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; }
+        .modal-close { color: var(--primary); font-weight: 600; font-size: 17px; cursor: pointer; }
+
+        /* Form Inputs */
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; margin-left: 5px; }
+        .input-group input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #E5E5EA; background: var(--surface); font-size: 16px; outline: none; }
+        .input-group input:focus { border-color: var(--primary); }
+
+        /* Bottom Nav */
         .bottom-nav {
-            position: absolute; bottom: 0; width: 100%; height: 70px;
-            background: white; border-top: 1px solid #eee; display: flex;
-            justify-content: space-around; align-items: center; z-index: 2000;
-            padding-bottom: env(safe-area-inset-bottom);
+            position: absolute; bottom: 0; width: 100%; height: 85px;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.05); display: flex;
+            justify-content: space-around; align-items: flex-start; z-index: 2000;
+            padding-top: 12px;
         }
         .nav-item {
             color: #999; text-decoration: none; display: flex; flex-direction: column;
-            align-items: center; font-size: 11px; gap: 5px; cursor: pointer; flex: 1;
+            align-items: center; font-size: 11px; gap: 6px; cursor: pointer; flex: 1; font-weight: 500;
         }
-        .nav-item i { font-size: 20px; }
+        .nav-item i { font-size: 22px; transition: transform 0.2s; }
         .nav-item.active { color: var(--primary); }
+        .nav-item.active i { transform: scale(1.1); }
+        
+        .leaflet-control-geocoder { margin-top: 60px !important; } /* Move search below dynamic island */
     </style>
 </head>
 <body>
 
 <div id="app-container">
     <div class="status-bar">
-        <span id="clock">9:41</span>
+        <span id="clock" style="margin-left: 10px;">9:41</span>
         <div class="dynamic-island"></div>
-        <span><i class="fas fa-signal"></i> <i class="fas fa-wifi"></i> <i class="fas fa-battery-full"></i></span>
+        <span style="margin-right: 5px;"><i class="fas fa-signal"></i> &nbsp;<i class="fas fa-wifi"></i> &nbsp;<i class="fas fa-battery-full"></i></span>
     </div>
 
+    <!-- 1. MAP SCREEN -->
     <div id="screen-map" class="screen active">
         <div id="map-wrapper">
             <div id="map"></div>
             
             <div id="zone-panel" class="bottom-panel">
                 <div class="panel-handle"></div>
-                <h2 id="p-title">Select a Zone</h2>
-                <p id="p-desc">Tap a parking zone on the map to see details.</p>
-                <button class="btn btn-outline" id="btn-navigate" disabled><i class="fas fa-location-arrow"></i> Navigate Here</button>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h2 id="p-title">Zone Name</h2>
+                        <p id="p-desc">Zone Details</p>
+                    </div>
+                    <div id="p-status-badge" style="padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 12px;"></div>
+                </div>
+                <button class="btn btn-outline" id="btn-navigate" disabled><i class="fas fa-location-arrow"></i> Directions</button>
                 <button class="btn" id="btn-book" disabled><i class="fas fa-check-circle"></i> Request Access</button>
             </div>
         </div>
     </div>
 
+    <!-- 2. SESSION SCREEN -->
     <div id="screen-session" class="screen">
+        <h1>Current Session</h1>
         <div class="content-pad">
-            <h2>Active Session</h2>
-            <div class="card" id="session-card" style="display: none;">
-                <h3 id="s-zone" style="margin-top:0; color:var(--primary);">Zone Name</h3>
-                <p><i class="fas fa-car"></i> Delivery Vehicle • AB-123-CD</p>
+            <div class="card" id="session-card" style="display: none; border: 2px solid var(--primary);">
+                <div style="display:flex; justify-content:space-between;">
+                    <h3 id="s-zone" style="color:var(--primary); font-weight: 700;">Zone Name</h3>
+                    <span style="background:#e5f2ff; color:var(--primary); padding: 3px 10px; border-radius: 12px; font-size:12px; font-weight:700;">ACTIVE</span>
+                </div>
+                <p style="margin-top:10px;"><i class="fas fa-truck" style="width:20px;"></i> Commercial Delivery</p>
+                <p><i class="fas fa-id-card" style="width:20px;"></i> Plate: <strong>AB-123-CD</strong></p>
                 <div class="timer" id="s-timer">15:00</div>
                 <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" id="btn-end-session">End Session Early</button>
             </div>
-            <div id="no-session" style="text-align:center; padding: 40px 0; color: #999;">
-                <i class="fas fa-parking" style="font-size: 3rem; margin-bottom: 10px;"></i>
-                <p>No active session. Go to the map to request access.</p>
+            <div id="no-session" style="text-align:center; padding: 60px 0; color: var(--text-muted);">
+                <i class="fas fa-square-parking" style="font-size: 64px; margin-bottom: 20px; color: #D1D1D6;"></i>
+                <h3 style="color: var(--text);">No Active Session</h3>
+                <p>Find a green zone on the map to start parking securely.</p>
+                <button class="btn" onclick="switchTab('map')" style="width:200px; margin: 20px auto;">View Map</button>
             </div>
         </div>
     </div>
 
+    <!-- 3. PROFILE SCREEN -->
     <div id="screen-profile" class="screen">
+        <h1>Profile</h1>
         <div class="content-pad">
-            <h2>Driver Profile</h2>
-            <div class="card" style="text-align: center;">
-                <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 10px;">
-                    <i class="fas fa-user"></i>
+            <div class="card" style="display: flex; align-items: center; gap: 15px;">
+                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #0A84FF, #5E5CE6); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 4px 10px rgba(10,132,255,0.3);">
+                    <i class="fas fa-user-tie"></i>
                 </div>
-                <h3 style="margin:0;">Jean Dupont</h3>
-                <p>Professional Delivery Driver</p>
+                <div style="flex: 1;">
+                    <h2 id="prof-name" style="margin:0; font-size:22px;">Jean Dupont</h2>
+                    <p id="prof-type" style="margin:2px 0 0; font-size:14px; color:var(--primary); font-weight:600;">Delivery Professional</p>
+                </div>
+                <button onclick="toggleModal('edit-profile-modal')" style="background:none; border:none; color:var(--primary); font-size:20px; cursor:pointer;"><i class="fas fa-edit"></i></button>
             </div>
-            <div class="card">
-                <h3 style="margin-top:0;">This Month's Stats</h3>
-                <p><i class="fas fa-check-circle" style="color:var(--success);"></i> <strong>42</strong> Lawful Stops</p>
-                <p><i class="fas fa-euro-sign" style="color:var(--primary);"></i> <strong>€1,470</strong> Fines Avoided</p>
+
+            <h3 style="margin: 25px 5px 15px;">Monthly Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <i class="fas fa-shield-alt"></i>
+                    <div class="value">42</div>
+                    <div class="label">Lawful Stops</div>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-piggy-bank" style="color: var(--success);"></i>
+                    <div class="value">€1,470</div>
+                    <div class="label">Fines Avoided</div>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-clock" style="color: #FF9500;"></i>
+                    <div class="value">18.5h</div>
+                    <div class="label">Time Saved</div>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-leaf" style="color: #34C759;"></i>
+                    <div class="value">12kg</div>
+                    <div class="label">CO2 Reduced</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('map')"><i class="fas fa-map-marked-alt"></i>Map</div>
-        <div class="nav-item" onclick="switchTab('session')"><i class="fas fa-clock"></i>Session</div>
-        <div class="nav-item" onclick="switchTab('profile')"><i class="fas fa-user"></i>Profile</div>
+    <!-- 4. SETTINGS SCREEN -->
+    <div id="screen-settings" class="screen">
+        <h1>Settings</h1>
+        <div class="content-pad">
+            <div class="list-group">
+                <div class="list-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="icon-bg" style="background:#0A84FF;"><i class="fas fa-car"></i></span> Manage Vehicles
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <div class="list-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="icon-bg" style="background:#34C759;"><i class="fas fa-credit-card"></i></span> Payment Methods
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <div class="list-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="icon-bg" style="background:#FF3B30;"><i class="fas fa-bell"></i></span> Notifications
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="list-group">
+                <div class="list-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="icon-bg" style="background:#5E5CE6;"><i class="fas fa-globe"></i></span> Language (EN)
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <div class="list-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="icon-bg" style="background:#FF9500;"><i class="fas fa-question-circle"></i></span> Help & Support
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+            
+            <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top:20px;">Log Out</button>
+        </div>
     </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('map')"><i class="fas fa-map"></i>Map</div>
+        <div class="nav-item" onclick="switchTab('session')"><i class="fas fa-stopwatch"></i>Session</div>
+        <div class="nav-item" onclick="switchTab('profile')"><i class="fas fa-user"></i>Profile</div>
+        <div class="nav-item" onclick="switchTab('settings')"><i class="fas fa-cog"></i>Menu</div>
+    </div>
+
+    <!-- EDIT PROFILE MODAL -->
+    <div id="edit-profile-modal" class="modal">
+        <div class="modal-header">
+            <span class="modal-close" onclick="toggleModal('edit-profile-modal')">Cancel</span>
+            <h2 style="margin:0; font-size:18px;">Edit Profile</h2>
+            <span class="modal-close" style="font-weight:700;" onclick="saveProfile()">Save</span>
+        </div>
+        <div class="content-pad">
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" id="input-name" value="Jean Dupont">
+            </div>
+            <div class="input-group">
+                <label>Professional Category</label>
+                <input type="text" id="input-type" value="Delivery Professional">
+            </div>
+            <div class="input-group">
+                <label>License Plate</label>
+                <input type="text" value="AB-123-CD">
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -169,11 +318,13 @@
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
 <script>
+    // System Clock
     setInterval(() => {
         const now = new Date();
         document.getElementById('clock').innerText = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
     }, 1000);
 
+    // Tab Switching
     function switchTab(tabId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -181,90 +332,116 @@
         document.getElementById('screen-' + tabId).classList.add('active');
         event.currentTarget.classList.add('active');
 
-        if(tabId === 'map') {
-            setTimeout(() => map.invalidateSize(), 100);
-        }
+        if(tabId === 'map') { setTimeout(() => map.invalidateSize(), 100); }
     }
 
-    const userLocation = [48.8566, 2.3522]; 
-    const map = L.map('map', { zoomControl: false }).setView(userLocation, 14);
+    // Modal Logic
+    function toggleModal(id) {
+        document.getElementById(id).classList.toggle('open');
+    }
+    function saveProfile() {
+        document.getElementById('prof-name').innerText = document.getElementById('input-name').value;
+        document.getElementById('prof-type').innerText = document.getElementById('input-type').value;
+        toggleModal('edit-profile-modal');
+    }
+
+    // --- LEAFLET MAP SETUP (PARIS ONLY) ---
+    // Bound map strictly to Paris
+    const parisBounds = L.latLngBounds(L.latLng(48.815, 2.225), L.latLng(48.902, 2.469));
+    const userLocation = [48.8566, 2.3522]; // Center of Paris
+
+    const map = L.map('map', { 
+        zoomControl: false,
+        maxBounds: parisBounds,
+        maxBoundsViscosity: 1.0,
+        minZoom: 12
+    }).setView(userLocation, 14);
     
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
+        maxZoom: 19,
+        attribution: '&copy; CartoDB'
     }).addTo(map);
 
-    const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: true,
-        placeholder: "Search destination...",
-        position: 'topleft'
-    }).addTo(map);
+    // Search Geocoder
+    L.Control.geocoder({ defaultMarkGeocode: true, placeholder: "Search Paris...", position: 'topleft' }).addTo(map);
 
+    // User Location Marker
     L.marker(userLocation, {
-        icon: L.divIcon({ className: 'custom-user-icon', html: '<div style="width:15px;height:15px;background:#007aff;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>' })
+        icon: L.divIcon({ className: 'custom-user-icon', html: '<div style="width:18px;height:18px;background:#0A84FF;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>' })
     }).addTo(map);
 
-    const zones = [
-        { id: 1, lat: 48.8580, lng: 2.3510, status: 'available', name: 'Rue de Rivoli', type: 'Delivery' },
-        { id: 2, lat: 48.8610, lng: 2.3450, status: 'occupied', name: 'Les Halles', type: 'Taxi' },
-        { id: 3, lat: 48.8530, lng: 2.3490, status: 'available', name: 'Notre Dame', type: 'Trades' },
-        { id: 4, lat: 48.8595, lng: 2.3580, status: 'available', name: 'Le Marais Nord', type: 'Medical' }
-    ];
+    // Generate Exactly 17 Green and 22 Red spots within Paris bounds
+    const zones = [];
+    function randomLat() { return 48.83 + Math.random() * 0.05; }
+    function randomLng() { return 2.28 + Math.random() * 0.10; }
+
+    for(let i=1; i<=17; i++) {
+        zones.push({ id: `G${i}`, lat: randomLat(), lng: randomLng(), status: 'available', name: `Zone ${Math.floor(Math.random()*100)} - Commercial`, type: 'Commercial Delivery' });
+    }
+    for(let i=1; i<=22; i++) {
+        zones.push({ id: `R${i}`, lat: randomLat(), lng: randomLng(), status: 'reserved', name: `Zone ${Math.floor(Math.random()*100)} - Reserved`, type: 'Occupied' });
+    }
 
     let selectedZone = null;
     let routingControl = null;
 
     zones.forEach(zone => {
-        const color = zone.status === 'available' ? '#4caf50' : '#f44336';
+        const isAvail = zone.status === 'available';
+        const color = isAvail ? '#34C759' : '#FF3B30';
+        
         const circle = L.circleMarker([zone.lat, zone.lng], {
-            color: color, fillColor: color, fillOpacity: 0.9, radius: 10, weight: 2
+            color: 'white', weight: 2, fillColor: color, fillOpacity: 0.95, radius: 11
         }).addTo(map);
 
         circle.on('click', () => {
             selectedZone = zone;
             document.getElementById('zone-panel').classList.add('open');
             document.getElementById('p-title').innerText = zone.name;
-            document.getElementById('p-desc').innerHTML = `<strong>Allowed:</strong> ${zone.type} <br><strong>Status:</strong> <span style="color:${color}">${zone.status.toUpperCase()}</span>`;
+            document.getElementById('p-desc').innerHTML = `<i class="fas fa-info-circle"></i> Allowed: ${zone.type}`;
             
+            const badge = document.getElementById('p-status-badge');
             const btnNav = document.getElementById('btn-navigate');
             const btnBook = document.getElementById('btn-book');
 
             btnNav.disabled = false;
-            if(zone.status === 'available') {
-                btnBook.disabled = false;
-                btnBook.innerText = "Request 15 Min Access";
+            
+            if(isAvail) {
+                badge.innerText = "AVAILABLE";
+                badge.style.background = "#e8f5e9"; badge.style.color = "#2e7d32";
+                btnBook.disabled = false; btnBook.innerHTML = `<i class="fas fa-check-circle"></i> Request Access`;
             } else {
-                btnBook.disabled = true;
-                btnBook.innerText = "Zone Occupied";
+                badge.innerText = "RESERVED";
+                badge.style.background = "#ffebee"; badge.style.color = "#c62828";
+                btnBook.disabled = true; btnBook.innerHTML = `<i class="fas fa-lock"></i> Spot Occupied`;
             }
         });
     });
 
-    map.on('click', () => {
-        document.getElementById('zone-panel').classList.remove('open');
-    });
+    map.on('click', () => { document.getElementById('zone-panel').classList.remove('open'); });
 
+    // Routing
     document.getElementById('btn-navigate').addEventListener('click', () => {
         if(!selectedZone) return;
         document.getElementById('zone-panel').classList.remove('open');
-
         if(routingControl) { map.removeControl(routingControl); }
 
         routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(userLocation[0], userLocation[1]),
-                L.latLng(selectedZone.lat, selectedZone.lng)
-            ],
-            routeWhileDragging: false,
-            show: false, 
-            createMarker: function() { return null; } 
+            waypoints: [ L.latLng(userLocation[0], userLocation[1]), L.latLng(selectedZone.lat, selectedZone.lng) ],
+            routeWhileDragging: false, show: false, createMarker: function() { return null; },
+            lineOptions: { styles: [{color: '#0A84FF', opacity: 0.8, weight: 6}] }
         }).addTo(map);
     });
 
+    // Session Logic
     let timerInterval;
-    
     document.getElementById('btn-book').addEventListener('click', () => {
-        switchTab('session');
         document.getElementById('zone-panel').classList.remove('open');
+        
+        // Go to session tab programmatically
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('screen-session').classList.add('active');
+        document.querySelectorAll('.nav-item')[1].classList.add('active');
         
         document.getElementById('no-session').style.display = 'none';
         document.getElementById('session-card').style.display = 'block';
@@ -272,23 +449,16 @@
         
         let timeLeft = 15 * 60;
         clearInterval(timerInterval);
-        
         const timerDisplay = document.getElementById('s-timer');
         timerDisplay.style.color = 'var(--primary)';
         
         timerInterval = setInterval(() => {
             timeLeft--;
-            const m = Math.floor(timeLeft / 60);
-            const s = timeLeft % 60;
+            const m = Math.floor(timeLeft / 60); const s = timeLeft % 60;
             timerDisplay.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-            
-            if(timeLeft < 300) timerDisplay.style.color = 'orange'; 
-            if(timeLeft < 60) timerDisplay.style.color = 'red'; 
-
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                timerDisplay.innerText = "EXPIRED";
-            }
+            if(timeLeft < 300) timerDisplay.style.color = '#FF9500'; 
+            if(timeLeft < 60) timerDisplay.style.color = 'var(--danger)'; 
+            if (timeLeft <= 0) { clearInterval(timerInterval); timerDisplay.innerText = "0:00"; }
         }, 1000);
     });
 
@@ -296,13 +466,15 @@
         clearInterval(timerInterval);
         document.getElementById('session-card').style.display = 'none';
         document.getElementById('no-session').style.display = 'block';
-        alert("Session ended successfully. Curb space freed!");
-        
         if(routingControl) { map.removeControl(routingControl); }
         
-        switchTab('map');
+        // Go back to map
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('screen-map').classList.add('active');
+        document.querySelectorAll('.nav-item')[0].classList.add('active');
+        setTimeout(() => map.invalidateSize(), 100);
     });
-
 </script>
 </body>
 </html>
