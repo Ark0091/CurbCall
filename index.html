@@ -161,14 +161,14 @@
                 <div class="panel-handle"></div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                     <div>
-                        <h2 id="p-title" style="margin:0; font-size:18px;">Select a Paris curb spot</h2>
-                        <p id="p-desc" style="margin:4px 0 0; font-size:13px;">Tap a red or green marker to view booking and navigation options.</p>
+                        <h2 id="p-title" style="margin:0; font-size:18px;">Loading spots...</h2>
+                        <p id="p-desc" style="margin:4px 0 0; font-size:13px;">Preparing map panel.</p>
                     </div>
-                    <div id="p-status-badge" style="padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 11px; background:#eef2f7; color:#5f6470;">UNSELECTED</div>
+                    <div id="p-status-badge" style="padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 11px; background:#eef2f7; color:#5f6470;">LOADING</div>
                 </div>
                 <div class="panel-meta">
-                    <span><i class="fas fa-map-marker-alt"></i> Spot: <strong id="p-zone-id">—</strong></span>
-                    <span><i class="fas fa-road"></i> Est. drive: <strong id="p-drive">—</strong></span>
+                    <span><i class="fas fa-map-marker-alt"></i> Spot: <strong id="p-zone-id">Loading...</strong></span>
+                    <span><i class="fas fa-road"></i> Est. drive: <strong id="p-drive">Loading...</strong></span>
                 </div>
                 
                 <div style="display: flex; gap: 10px;">
@@ -451,20 +451,28 @@
     const badge = document.getElementById('p-status-badge');
     const btnNav = document.getElementById('btn-navigate');
     const btnBook = document.getElementById('btn-book');
+    const AVERAGE_CITY_SPEED_KMH = 18;
+    const DEFAULT_PANEL_STATE = {
+        title: 'Select a Paris curb spot',
+        description: 'Tap a red or green marker to view booking and navigation options.',
+        zoneId: 'None selected',
+        drive: 'Not available',
+        badge: 'UNSELECTED'
+    };
 
     function estimateDriveTimeText(lat, lng) {
         const km = map.distance(userLocation, [lat, lng]) / 1000;
-        const minutes = Math.max(2, Math.round((km / 18) * 60));
+        const minutes = Math.max(2, Math.round((km / AVERAGE_CITY_SPEED_KMH) * 60));
         return `${minutes}-${minutes + 3} min`;
     }
 
     function updateZonePanel(zone) {
         if(!zone) {
-            panelTitle.innerText = 'Select a Paris curb spot';
-            panelDesc.innerHTML = 'Tap a red or green marker to view booking and navigation options.';
-            panelZoneId.innerText = 'None selected';
-            panelDrive.innerText = 'Not available';
-            badge.innerText = 'UNSELECTED';
+            panelTitle.innerText = DEFAULT_PANEL_STATE.title;
+            panelDesc.innerHTML = DEFAULT_PANEL_STATE.description;
+            panelZoneId.innerText = DEFAULT_PANEL_STATE.zoneId;
+            panelDrive.innerText = DEFAULT_PANEL_STATE.drive;
+            badge.innerText = DEFAULT_PANEL_STATE.badge;
             badge.style.background = '#eef2f7';
             badge.style.color = '#5f6470';
             btnNav.disabled = true;
