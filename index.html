@@ -2,82 +2,307 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CurbCall - Paris Smart Parking</title>
-    <!-- Leaflet CSS for the map -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>CurbCall - Pro</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; overflow: hidden; }
-        header { background-color: #0047AB; color: white; padding: 1rem; text-align: center; font-size: 1.2rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); position: relative; z-index: 2000; }
-        #map { height: 65vh; width: 100%; }
-        .panel { height: 35vh; padding: 1.5rem; background: white; border-top-left-radius: 20px; border-top-right-radius: 20px; margin-top: -20px; position: relative; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); box-sizing: border-box; }
-        h2 { margin-top: 0; font-size: 1.2rem; color: #333; }
-        p { color: #666; font-size: 0.95rem; line-height: 1.4; }
-        .btn { display: block; width: 100%; background-color: #0047AB; color: white; border: none; padding: 1rem; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; margin-top: 1rem; transition: opacity 0.2s; }
-        .btn:active { background-color: #003380; }
-        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
-        #status { display: none; margin-top: 1rem; padding: 1rem; background-color: #e8f5e9; color: #2e7d32; border-radius: 8px; text-align: center; font-weight: bold; border: 2px solid #4caf50; }
+        :root {
+            --primary: #0047AB;
+            --primary-dark: #003380;
+            --success: #4caf50;
+            --danger: #f44336;
+            --bg: #f4f7f6;
+            --text: #333;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; padding: 0; background-color: #ccc; 
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        #app-container {
+            width: 100%; height: 100vh; 
+            background: var(--bg); position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        @media (min-width: 500px) {
+            #app-container {
+                width: 400px; height: 850px; 
+                border-radius: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+                border: 8px solid #222;
+            }
+        }
+
+        .status-bar {
+            height: 50px; background: var(--primary); color: white;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding: 0 20px 10px; font-size: 14px; font-weight: 600; z-index: 2000;
+        }
+        .dynamic-island {
+            width: 100px; height: 25px; background: #000; border-radius: 15px;
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+        }
+
+        .screen { flex: 1; display: none; flex-direction: column; height: 100%; overflow-y: auto; padding-bottom: 70px; }
+        .screen.active { display: flex; }
+
+        #map-wrapper { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
+        
+        .bottom-panel {
+            background: white; border-top-left-radius: 20px; border-top-right-radius: 20px;
+            padding: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+            position: absolute; bottom: 0; width: 100%; z-index: 1000;
+            transform: translateY(100%); transition: transform 0.3s ease-out;
+        }
+        .bottom-panel.open { transform: translateY(0); }
+        .panel-handle { width: 40px; height: 5px; background: #ddd; border-radius: 3px; margin: 0 auto 15px; }
+
+        h2 { margin: 0 0 10px; font-size: 1.2rem; color: var(--text); }
+        p { color: #666; font-size: 0.95rem; line-height: 1.4; margin: 0 0 15px; }
+        
+        .btn {
+            display: block; width: 100%; background: var(--primary); color: white;
+            border: none; padding: 14px; border-radius: 12px; font-size: 1.1rem; 
+            font-weight: 600; cursor: pointer; text-align: center; margin-bottom: 10px;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        .btn:active { background: var(--primary-dark); }
+        .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .content-pad { padding: 20px; }
+        .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .timer { font-size: 3rem; font-weight: bold; text-align: center; color: var(--primary); margin: 20px 0; }
+        
+        .bottom-nav {
+            position: absolute; bottom: 0; width: 100%; height: 70px;
+            background: white; border-top: 1px solid #eee; display: flex;
+            justify-content: space-around; align-items: center; z-index: 2000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            color: #999; text-decoration: none; display: flex; flex-direction: column;
+            align-items: center; font-size: 11px; gap: 5px; cursor: pointer; flex: 1;
+        }
+        .nav-item i { font-size: 20px; }
+        .nav-item.active { color: var(--primary); }
     </style>
 </head>
 <body>
-    <header>CurbCall</header>
-    <div id="map"></div>
-    <div class="panel">
-        <h2>Available Curb Zones</h2>
-        <div id="zone-info">
-            <p>Tap a green zone on the map to view details and request access.</p>
-        </div>
-        <button class="btn" id="request-btn" disabled style="opacity: 0.5;">Select a zone to request access</button>
-        <div id="status">Session Active: 15:00 remaining</div>
+
+<div id="app-container">
+    <div class="status-bar">
+        <span id="clock">9:41</span>
+        <div class="dynamic-island"></div>
+        <span><i class="fas fa-signal"></i> <i class="fas fa-wifi"></i> <i class="fas fa-battery-full"></i></span>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const map = L.map('map', { zoomControl: false }).setView([48.8566, 2.3522], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    <div id="screen-map" class="screen active">
+        <div id="map-wrapper">
+            <div id="map"></div>
+            
+            <div id="zone-panel" class="bottom-panel">
+                <div class="panel-handle"></div>
+                <h2 id="p-title">Select a Zone</h2>
+                <p id="p-desc">Tap a parking zone on the map to see details.</p>
+                <button class="btn btn-outline" id="btn-navigate" disabled><i class="fas fa-location-arrow"></i> Navigate Here</button>
+                <button class="btn" id="btn-book" disabled><i class="fas fa-check-circle"></i> Request Access</button>
+            </div>
+        </div>
+    </div>
 
-        const zones = [
-            { id: 1, lat: 48.8580, lng: 2.3510, status: 'available', name: 'Rue de Rivoli - Delivery', type: 'Delivery' },
-            { id: 2, lat: 48.8550, lng: 2.3540, status: 'occupied', name: 'Le Marais - Taxi Only', type: 'Taxi' },
-            { id: 3, lat: 48.8595, lng: 2.3535, status: 'available', name: 'Châtelet - Trades/Medical', type: 'Trades' }
-        ];
+    <div id="screen-session" class="screen">
+        <div class="content-pad">
+            <h2>Active Session</h2>
+            <div class="card" id="session-card" style="display: none;">
+                <h3 id="s-zone" style="margin-top:0; color:var(--primary);">Zone Name</h3>
+                <p><i class="fas fa-car"></i> Delivery Vehicle • AB-123-CD</p>
+                <div class="timer" id="s-timer">15:00</div>
+                <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" id="btn-end-session">End Session Early</button>
+            </div>
+            <div id="no-session" style="text-align:center; padding: 40px 0; color: #999;">
+                <i class="fas fa-parking" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                <p>No active session. Go to the map to request access.</p>
+            </div>
+        </div>
+    </div>
 
-        const requestBtn = document.getElementById('request-btn');
-        const zoneInfo = document.getElementById('zone-info');
-        const statusDiv = document.getElementById('status');
-        let timerInterval;
+    <div id="screen-profile" class="screen">
+        <div class="content-pad">
+            <h2>Driver Profile</h2>
+            <div class="card" style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 10px;">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h3 style="margin:0;">Jean Dupont</h3>
+                <p>Professional Delivery Driver</p>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0;">This Month's Stats</h3>
+                <p><i class="fas fa-check-circle" style="color:var(--success);"></i> <strong>42</strong> Lawful Stops</p>
+                <p><i class="fas fa-euro-sign" style="color:var(--primary);"></i> <strong>€1,470</strong> Fines Avoided</p>
+            </div>
+        </div>
+    </div>
 
-        zones.forEach(zone => {
-            const color = zone.status === 'available' ? '#4caf50' : '#f44336';
-            const circle = L.circleMarker([zone.lat, zone.lng], { color: color, fillColor: color, fillOpacity: 0.8, radius: 12, weight: 2 }).addTo(map);
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('map')"><i class="fas fa-map-marked-alt"></i>Map</div>
+        <div class="nav-item" onclick="switchTab('session')"><i class="fas fa-clock"></i>Session</div>
+        <div class="nav-item" onclick="switchTab('profile')"><i class="fas fa-user"></i>Profile</div>
+    </div>
+</div>
 
-            circle.on('click', () => {
-                zoneInfo.innerHTML = `
-                    <p style="margin: 0;"><strong>📍 ${zone.name}</strong></p>
-                    <p style="margin: 5px 0 0 0;">Allowed: ${zone.type} • Status: <span style="color:${color}; font-weight:bold;">${zone.status.toUpperCase()}</span></p>
-                `;
-                if (zone.status === 'available') {
-                    requestBtn.disabled = false; requestBtn.style.opacity = '1'; requestBtn.innerText = "Request 15 Min Access";
-                } else {
-                    requestBtn.disabled = true; requestBtn.style.opacity = '0.5'; requestBtn.innerText = "Zone Occupied";
-                }
-            });
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<script>
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
+    }, 1000);
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        
+        document.getElementById('screen-' + tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if(tabId === 'map') {
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+    }
+
+    const userLocation = [48.8566, 2.3522]; 
+    const map = L.map('map', { zoomControl: false }).setView(userLocation, 14);
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    const geocoder = L.Control.geocoder({
+        defaultMarkGeocode: true,
+        placeholder: "Search destination...",
+        position: 'topleft'
+    }).addTo(map);
+
+    L.marker(userLocation, {
+        icon: L.divIcon({ className: 'custom-user-icon', html: '<div style="width:15px;height:15px;background:#007aff;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>' })
+    }).addTo(map);
+
+    const zones = [
+        { id: 1, lat: 48.8580, lng: 2.3510, status: 'available', name: 'Rue de Rivoli', type: 'Delivery' },
+        { id: 2, lat: 48.8610, lng: 2.3450, status: 'occupied', name: 'Les Halles', type: 'Taxi' },
+        { id: 3, lat: 48.8530, lng: 2.3490, status: 'available', name: 'Notre Dame', type: 'Trades' },
+        { id: 4, lat: 48.8595, lng: 2.3580, status: 'available', name: 'Le Marais Nord', type: 'Medical' }
+    ];
+
+    let selectedZone = null;
+    let routingControl = null;
+
+    zones.forEach(zone => {
+        const color = zone.status === 'available' ? '#4caf50' : '#f44336';
+        const circle = L.circleMarker([zone.lat, zone.lng], {
+            color: color, fillColor: color, fillOpacity: 0.9, radius: 10, weight: 2
+        }).addTo(map);
+
+        circle.on('click', () => {
+            selectedZone = zone;
+            document.getElementById('zone-panel').classList.add('open');
+            document.getElementById('p-title').innerText = zone.name;
+            document.getElementById('p-desc').innerHTML = `<strong>Allowed:</strong> ${zone.type} <br><strong>Status:</strong> <span style="color:${color}">${zone.status.toUpperCase()}</span>`;
+            
+            const btnNav = document.getElementById('btn-navigate');
+            const btnBook = document.getElementById('btn-book');
+
+            btnNav.disabled = false;
+            if(zone.status === 'available') {
+                btnBook.disabled = false;
+                btnBook.innerText = "Request 15 Min Access";
+            } else {
+                btnBook.disabled = true;
+                btnBook.innerText = "Zone Occupied";
+            }
         });
+    });
 
-        requestBtn.addEventListener('click', () => {
-            requestBtn.style.display = 'none'; zoneInfo.style.display = 'none'; statusDiv.style.display = 'block';
-            let timeLeft = 15 * 60;
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                const mins = Math.floor(timeLeft / 60); const secs = timeLeft % 60;
-                statusDiv.innerText = `✅ Session Active\n${mins}:${secs.toString().padStart(2, '0')} remaining`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval); statusDiv.innerText = "Session Expired"; statusDiv.style.backgroundColor = "#ffebee"; statusDiv.style.color = "#c62828"; statusDiv.style.borderColor = "#c62828";
-                }
-            }, 1000);
-        });
-    </script>
+    map.on('click', () => {
+        document.getElementById('zone-panel').classList.remove('open');
+    });
+
+    document.getElementById('btn-navigate').addEventListener('click', () => {
+        if(!selectedZone) return;
+        document.getElementById('zone-panel').classList.remove('open');
+
+        if(routingControl) { map.removeControl(routingControl); }
+
+        routingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(userLocation[0], userLocation[1]),
+                L.latLng(selectedZone.lat, selectedZone.lng)
+            ],
+            routeWhileDragging: false,
+            show: false, 
+            createMarker: function() { return null; } 
+        }).addTo(map);
+    });
+
+    let timerInterval;
+    
+    document.getElementById('btn-book').addEventListener('click', () => {
+        switchTab('session');
+        document.getElementById('zone-panel').classList.remove('open');
+        
+        document.getElementById('no-session').style.display = 'none';
+        document.getElementById('session-card').style.display = 'block';
+        document.getElementById('s-zone').innerText = selectedZone.name;
+        
+        let timeLeft = 15 * 60;
+        clearInterval(timerInterval);
+        
+        const timerDisplay = document.getElementById('s-timer');
+        timerDisplay.style.color = 'var(--primary)';
+        
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            timerDisplay.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+            
+            if(timeLeft < 300) timerDisplay.style.color = 'orange'; 
+            if(timeLeft < 60) timerDisplay.style.color = 'red'; 
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.innerText = "EXPIRED";
+            }
+        }, 1000);
+    });
+
+    document.getElementById('btn-end-session').addEventListener('click', () => {
+        clearInterval(timerInterval);
+        document.getElementById('session-card').style.display = 'none';
+        document.getElementById('no-session').style.display = 'block';
+        alert("Session ended successfully. Curb space freed!");
+        
+        if(routingControl) { map.removeControl(routingControl); }
+        
+        switchTab('map');
+    });
+
+</script>
 </body>
 </html>
