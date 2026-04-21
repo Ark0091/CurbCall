@@ -14,11 +14,11 @@
 
     <style>
         :root {
-            --primary: #0A84FF; /* iOS Blue */
+            --primary: #0A84FF;
             --primary-dark: #006ee6;
-            --success: #34C759; /* iOS Green */
-            --danger: #FF3B30; /* iOS Red */
-            --bg: #F2F2F7; /* iOS Light Gray */
+            --success: #34C759;
+            --danger: #FF3B30;
+            --bg: #F2F2F7;
             --surface: #FFFFFF;
             --text: #1C1C1E;
             --text-muted: #8E8E93;
@@ -26,13 +26,15 @@
         
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
-        body { 
+        html, body {
+            height: 100%;
             margin: 0; padding: 0; background-color: #e5e5ea; 
-            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
         }
 
         #app-container {
-            width: 100%; height: 100vh; 
+            width: 100%; height: 100%; 
             background: var(--bg); position: relative; overflow: hidden;
             display: flex; flex-direction: column;
         }
@@ -59,21 +61,23 @@
 
         .screen { flex: 1; display: none; flex-direction: column; height: 100%; overflow-y: auto; padding-bottom: 90px; padding-top: 60px; }
         .screen.active { display: flex; }
-        #screen-map { padding-top: 0; } /* Map takes full screen behind island */
+        #screen-map { padding-top: 0; overflow: hidden; }
 
         #map-wrapper { flex: 1; position: relative; height: 100%; }
         #map { width: 100%; height: 100%; }
         
-        /* Modern Bottom Panel */
         .bottom-panel {
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
             border-top-left-radius: 30px; border-top-right-radius: 30px;
-            padding: 25px 25px 40px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
-            position: absolute; bottom: 0; width: 100%; z-index: 1000;
-            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 15px 20px 20px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+            position: absolute; 
+            bottom: 85px; /* Sit strictly above the bottom navigation bar */
+            width: 100%; z-index: 1000;
+            transform: translateY(150%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-sizing: border-box;
         }
         .bottom-panel.open { transform: translateY(0); }
-        .panel-handle { width: 50px; height: 5px; background: #E5E5EA; border-radius: 5px; margin: 0 auto 20px; }
+        .panel-handle { width: 40px; height: 5px; background: #D1D1D6; border-radius: 5px; margin: 0 auto 12px; }
 
         h1 { font-size: 28px; font-weight: 800; margin: 10px 20px 20px; color: var(--text); }
         h2 { margin: 0 0 8px; font-size: 20px; color: var(--text); font-weight: 700; }
@@ -81,10 +85,10 @@
         p { color: var(--text-muted); font-size: 15px; line-height: 1.4; margin: 0 0 15px; }
         
         .btn {
-            display: flex; justify-content: center; align-items: center; gap: 10px;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
             width: 100%; background: var(--primary); color: white;
-            border: none; padding: 16px; border-radius: 16px; font-size: 17px; 
-            font-weight: 600; cursor: pointer; margin-bottom: 12px; transition: transform 0.1s;
+            border: none; padding: 14px; border-radius: 14px; font-size: 16px; 
+            font-weight: 600; cursor: pointer; transition: transform 0.1s;
         }
         .btn:active { transform: scale(0.98); background: var(--primary-dark); }
         .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
@@ -94,21 +98,18 @@
         .card { background: var(--surface); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px; }
         .timer { font-size: 48px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; color: var(--primary); margin: 20px 0; }
         
-        /* Stats Grid */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .stat-box { background: var(--surface); padding: 20px 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
         .stat-box i { font-size: 24px; color: var(--primary); margin-bottom: 10px; }
         .stat-box .value { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
         .stat-box .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* List Items (Settings) */
         .list-group { background: var(--surface); border-radius: 20px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
         .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #F2F2F7; font-size: 16px; color: var(--text); cursor: pointer; }
         .list-item:last-child { border-bottom: none; }
         .list-item i.fa-chevron-right { color: #C7C7CC; font-size: 14px; }
         .list-item .icon-bg { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: white; margin-right: 12px; }
 
-        /* Modals */
         .modal {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg);
             z-index: 3000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -118,13 +119,11 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; }
         .modal-close { color: var(--primary); font-weight: 600; font-size: 17px; cursor: pointer; }
 
-        /* Form Inputs */
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; margin-left: 5px; }
         .input-group input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #E5E5EA; background: var(--surface); font-size: 16px; outline: none; }
         .input-group input:focus { border-color: var(--primary); }
 
-        /* Bottom Nav */
         .bottom-nav {
             position: absolute; bottom: 0; width: 100%; height: 85px;
             background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px);
@@ -140,7 +139,7 @@
         .nav-item.active { color: var(--primary); }
         .nav-item.active i { transform: scale(1.1); }
         
-        .leaflet-control-geocoder { margin-top: 60px !important; } /* Move search below dynamic island */
+        .leaflet-control-geocoder { margin-top: 60px !important; }
     </style>
 </head>
 <body>
@@ -152,27 +151,29 @@
         <span style="margin-right: 5px;"><i class="fas fa-signal"></i> &nbsp;<i class="fas fa-wifi"></i> &nbsp;<i class="fas fa-battery-full"></i></span>
     </div>
 
-    <!-- 1. MAP SCREEN -->
     <div id="screen-map" class="screen active">
         <div id="map-wrapper">
             <div id="map"></div>
             
+            <!-- Sit directly above bottom nav -->
             <div id="zone-panel" class="bottom-panel">
                 <div class="panel-handle"></div>
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                     <div>
-                        <h2 id="p-title">Zone Name</h2>
-                        <p id="p-desc">Zone Details</p>
+                        <h2 id="p-title" style="margin:0; font-size:18px;">Zone Name</h2>
+                        <p id="p-desc" style="margin:4px 0 0; font-size:13px;">Zone Details</p>
                     </div>
-                    <div id="p-status-badge" style="padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 12px;"></div>
+                    <div id="p-status-badge" style="padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 11px;"></div>
                 </div>
-                <button class="btn btn-outline" id="btn-navigate" disabled><i class="fas fa-location-arrow"></i> Directions</button>
-                <button class="btn" id="btn-book" disabled><i class="fas fa-check-circle"></i> Request Access</button>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" id="btn-navigate" disabled style="flex:1; margin:0; font-size:14px;"><i class="fas fa-location-arrow"></i> Route</button>
+                    <button class="btn" id="btn-book" disabled style="flex:1; margin:0; font-size:14px;"><i class="fas fa-check-circle"></i> Request</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 2. SESSION SCREEN -->
     <div id="screen-session" class="screen">
         <h1>Current Session</h1>
         <div class="content-pad">
@@ -195,7 +196,6 @@
         </div>
     </div>
 
-    <!-- 3. PROFILE SCREEN -->
     <div id="screen-profile" class="screen">
         <h1>Profile</h1>
         <div class="content-pad">
@@ -236,7 +236,6 @@
         </div>
     </div>
 
-    <!-- 4. SETTINGS SCREEN -->
     <div id="screen-settings" class="screen">
         <h1>Settings</h1>
         <div class="content-pad">
@@ -280,7 +279,6 @@
         </div>
     </div>
 
-    <!-- BOTTOM NAV -->
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('map')"><i class="fas fa-map"></i>Map</div>
         <div class="nav-item" onclick="switchTab('session')"><i class="fas fa-stopwatch"></i>Session</div>
@@ -288,7 +286,6 @@
         <div class="nav-item" onclick="switchTab('settings')"><i class="fas fa-cog"></i>Menu</div>
     </div>
 
-    <!-- EDIT PROFILE MODAL -->
     <div id="edit-profile-modal" class="modal">
         <div class="modal-header">
             <span class="modal-close" onclick="toggleModal('edit-profile-modal')">Cancel</span>
@@ -318,13 +315,11 @@
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
 <script>
-    // System Clock
     setInterval(() => {
         const now = new Date();
         document.getElementById('clock').innerText = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
     }, 1000);
 
-    // Tab Switching
     function switchTab(tabId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -335,7 +330,6 @@
         if(tabId === 'map') { setTimeout(() => map.invalidateSize(), 100); }
     }
 
-    // Modal Logic
     function toggleModal(id) {
         document.getElementById(id).classList.toggle('open');
     }
@@ -345,10 +339,8 @@
         toggleModal('edit-profile-modal');
     }
 
-    // --- LEAFLET MAP SETUP (PARIS ONLY) ---
-    // Bound map strictly to Paris
     const parisBounds = L.latLngBounds(L.latLng(48.815, 2.225), L.latLng(48.902, 2.469));
-    const userLocation = [48.8566, 2.3522]; // Center of Paris
+    const userLocation = [48.8566, 2.3522];
 
     const map = L.map('map', { 
         zoomControl: false,
@@ -362,15 +354,12 @@
         attribution: '&copy; CartoDB'
     }).addTo(map);
 
-    // Search Geocoder
     L.Control.geocoder({ defaultMarkGeocode: true, placeholder: "Search Paris...", position: 'topleft' }).addTo(map);
 
-    // User Location Marker
     L.marker(userLocation, {
         icon: L.divIcon({ className: 'custom-user-icon', html: '<div style="width:18px;height:18px;background:#0A84FF;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>' })
     }).addTo(map);
 
-    // Generate Exactly 17 Green and 22 Red spots within Paris bounds
     const zones = [];
     function randomLat() { return 48.83 + Math.random() * 0.05; }
     function randomLng() { return 2.28 + Math.random() * 0.10; }
@@ -408,18 +397,17 @@
             if(isAvail) {
                 badge.innerText = "AVAILABLE";
                 badge.style.background = "#e8f5e9"; badge.style.color = "#2e7d32";
-                btnBook.disabled = false; btnBook.innerHTML = `<i class="fas fa-check-circle"></i> Request Access`;
+                btnBook.disabled = false; btnBook.innerHTML = `<i class="fas fa-check-circle"></i> Request`;
             } else {
                 badge.innerText = "RESERVED";
                 badge.style.background = "#ffebee"; badge.style.color = "#c62828";
-                btnBook.disabled = true; btnBook.innerHTML = `<i class="fas fa-lock"></i> Spot Occupied`;
+                btnBook.disabled = true; btnBook.innerHTML = `<i class="fas fa-lock"></i> Occupied`;
             }
         });
     });
 
     map.on('click', () => { document.getElementById('zone-panel').classList.remove('open'); });
 
-    // Routing
     document.getElementById('btn-navigate').addEventListener('click', () => {
         if(!selectedZone) return;
         document.getElementById('zone-panel').classList.remove('open');
@@ -432,12 +420,10 @@
         }).addTo(map);
     });
 
-    // Session Logic
     let timerInterval;
     document.getElementById('btn-book').addEventListener('click', () => {
         document.getElementById('zone-panel').classList.remove('open');
         
-        // Go to session tab programmatically
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('screen-session').classList.add('active');
@@ -468,7 +454,6 @@
         document.getElementById('no-session').style.display = 'block';
         if(routingControl) { map.removeControl(routingControl); }
         
-        // Go back to map
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('screen-map').classList.add('active');
