@@ -444,10 +444,59 @@
 
     let selectedZone = null;
     let routingControl = null;
+    const panelTitle = document.getElementById('p-title');
+    const panelDesc = document.getElementById('p-desc');
+    const panelZoneId = document.getElementById('p-zone-id');
+    const panelDrive = document.getElementById('p-drive');
+    const badge = document.getElementById('p-status-badge');
+    const btnNav = document.getElementById('btn-navigate');
+    const btnBook = document.getElementById('btn-book');
+
+    function estimateDriveTimeText(lat, lng) {
+        const km = map.distance(userLocation, [lat, lng]) / 1000;
+        const minutes = Math.max(2, Math.round((km / 18) * 60));
+        return `${minutes}-${minutes + 3} min`;
+    }
+
+    function updateZonePanel(zone) {
+        if(!zone) {
+            panelTitle.innerText = 'Select a Paris curb spot';
+            panelDesc.innerHTML = 'Tap a red or green marker to view booking and navigation options.';
+            panelZoneId.innerText = 'None selected';
+            panelDrive.innerText = 'Not available';
+            badge.innerText = 'UNSELECTED';
+            badge.style.background = '#eef2f7';
+            badge.style.color = '#5f6470';
+            btnNav.disabled = true;
+            btnBook.disabled = true;
+            btnBook.innerHTML = `<i class="fas fa-check-circle"></i> Request`;
+            return;
+        }
+
+        const isAvail = zone.status === 'available';
+        panelTitle.innerText = zone.name;
+        panelDesc.innerHTML = `<i class="fas fa-info-circle"></i> Allowed: ${zone.type}`;
+        panelZoneId.innerText = zone.id;
+        panelDrive.innerText = estimateDriveTimeText(zone.lat, zone.lng);
+        btnNav.disabled = false;
+
+        if(isAvail) {
+            badge.innerText = "AVAILABLE";
+            badge.style.background = "#e8f5e9";
+            badge.style.color = "#2e7d32";
+            btnBook.disabled = false;
+            btnBook.innerHTML = `<i class="fas fa-check-circle"></i> Request`;
+        } else {
+            badge.innerText = "RESERVED";
+            badge.style.background = "#ffebee";
+            badge.style.color = "#c62828";
+            btnBook.disabled = true;
+            btnBook.innerHTML = `<i class="fas fa-lock"></i> Occupied`;
+        }
+    }
 
     zones.forEach(zone => {
-        const isAvail = zone.status === 'available';
-        const color = isAvail ? '#34C759' : '#FF3B30';
+        const color = zone.status === 'available' ? '#34C759' : '#FF3B30';
         
         const circle = L.circleMarker([zone.lat, zone.lng], {
             color: 'white', weight: 2, fillColor: color, fillOpacity: 0.95, radius: 11
@@ -455,28 +504,10 @@
 
         circle.on('click', () => {
             selectedZone = zone;
-            document.getElementById('p-title').innerText = zone.name;
-            document.getElementById('p-desc').innerHTML = `<i class="fas fa-info-circle"></i> Allowed: ${zone.type}`;
-            document.getElementById('p-zone-id').innerText = zone.id;
-            document.getElementById('p-drive').innerText = isAvail ? '2-6 min' : '5-10 min';
-            
-            const badge = document.getElementById('p-status-badge');
-            const btnNav = document.getElementById('btn-navigate');
-            const btnBook = document.getElementById('btn-book');
-
-            btnNav.disabled = false;
-            
-            if(isAvail) {
-                badge.innerText = "AVAILABLE";
-                badge.style.background = "#e8f5e9"; badge.style.color = "#2e7d32";
-                btnBook.disabled = false; btnBook.innerHTML = `<i class="fas fa-check-circle"></i> Request`;
-            } else {
-                badge.innerText = "RESERVED";
-                badge.style.background = "#ffebee"; badge.style.color = "#c62828";
-                btnBook.disabled = true; btnBook.innerHTML = `<i class="fas fa-lock"></i> Occupied`;
-            }
+            updateZonePanel(zone);
         });
     });
+    updateZonePanel(null);
 
     document.getElementById('btn-navigate').addEventListener('click', () => {
         if(!selectedZone) return;
